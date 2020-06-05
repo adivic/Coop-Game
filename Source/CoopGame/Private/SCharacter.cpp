@@ -43,7 +43,7 @@ void ASCharacter::BeginPlay()
 	HealthComponent->OnHealthChanged.AddDynamic(this, &ASCharacter::OnHealthChanged);
 
 	if (Role == ROLE_Authority) {
-		//Spawn defults weapon
+		//Spawn default weapon
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		CurrentWeapon = GetWorld()->SpawnActor<ASWeapon>(StarterWeaponClass, FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
@@ -70,14 +70,6 @@ void ASCharacter::EndCrouch() {
 	UnCrouch();
 }
 
-void ASCharacter::StartADS() {
-	bWantsToZoom = true;
-}
-
-void ASCharacter::StopADS() {
-	bWantsToZoom = false;
-}
-
 void ASCharacter::StartFire() {
 	if (CurrentWeapon) {
 		CurrentWeapon->StartFire();
@@ -90,12 +82,43 @@ void ASCharacter::StopFire() {
 	}
 }
 
+void ASCharacter::StartZoom() {
+	if (GetLocalRole() < ROLE_Authority) {
+		ServerStartADS();
+	}
+
+	bWantsToZoom = true;
+}
+
+void ASCharacter::StopZoom() {
+	if (GetLocalRole() < ROLE_Authority) {
+		ServerStopADS();
+	}
+	bWantsToZoom = false;
+}
+
+void ASCharacter::ServerStartADS_Implementation() {
+	StartZoom();
+}
+
+bool ASCharacter::ServerStartADS_Validate() {
+	return true;
+}
+
+void ASCharacter::ServerStopADS_Implementation() {
+	StopZoom();
+}
+
+bool ASCharacter::ServerStopADS_Validate() {
+	return true;
+}
+
 void ASCharacter::OnHealthChanged(USHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser) {
 	if (Health <= 0.0f && !bDied) {
 		bDied = true;
 		GetMovementComponent()->StopMovementImmediately();
 		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
+		CurrentWeapon->StopFire();
 		DetachFromControllerPendingDestroy();
 
 		SetLifeSpan(10.0f);
@@ -112,6 +135,11 @@ void ASCharacter::Tick(float DeltaTime)
 	float NewFov = FMath::FInterpTo(PlayerCamera->FieldOfView, TargetFOV, DeltaTime, ZoomInterpSpeed);
 
 	PlayerCamera->SetFieldOfView(NewFov);
+
+	if (!IsLocallyControlled()) {
+		auto Pitch = RemoteViewPitch * 360.f / 255.f;
+		AimPitch = FMath::ClampAngle(Pitch, -90, 90);
+	}
 }
 
 // Called to bind functionality to input
@@ -130,8 +158,8 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 
-	PlayerInputComponent->BindAction("ADS", IE_Pressed, this, &ASCharacter::StartADS);
-	PlayerInputComponent->BindAction("ADS", IE_Released, this, &ASCharacter::StopADS);
+	PlayerInputComponent->BindAction("ADS", IE_Pressed, this, &ASCharacter::StartZoom);
+	PlayerInputComponent->BindAction("ADS", IE_Released, this, &ASCharacter::StopZoom);
 
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &ASCharacter::StartFire);
 	PlayerInputComponent->BindAction("Fire", IE_Released, this, &ASCharacter::StopFire);
@@ -149,4 +177,6 @@ void ASCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLi
 
 	DOREPLIFETIME(ASCharacter, CurrentWeapon);
 	DOREPLIFETIME(ASCharacter, bDied);
+	DOREPLIFETIME(ASCharacter, bWantsToZoom);
+	DOREPLIFETIME(ASCharacter, AimPitch);
 }

@@ -41,8 +41,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components)
 	USHealthComponent* HealthComponent;
 
-	bool bWantsToZoom = false;
-
 	UPROPERTY(EditDefaultsOnly, Category = Player, meta= (ClampMin = 0.1, ClampMax = 100))
 	float ZoomInterpSpeed;
 
@@ -51,9 +49,15 @@ protected:
 
 	float DefaultFOV;
 
-	void StartADS();
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerStartADS();
 
-	void StopADS();
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerStopADS();
+
+	void StartZoom();
+
+	void StopZoom();
 
 	UPROPERTY(Replicated)
 	ASWeapon* CurrentWeapon;
@@ -71,6 +75,9 @@ protected:
 	UPROPERTY(Replicated , BlueprintReadOnly, Category = Player)
 	bool bDied = false;
 
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = Player)
+	float AimPitch;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -85,4 +92,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Player)
 	void StopFire();
+
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = Player)
+	bool bWantsToZoom = false;
 };

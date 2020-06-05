@@ -47,7 +47,6 @@ void USHealthComponent::HandleTakeAnyDamage(AActor * DamagedActor, float Damage,
 	if (DamageCauser != DamagedActor && IsFriendly(DamagedActor, DamageCauser)) return;
 
 	Health = FMath::Clamp(Health - Damage, 0.0f, DefaultHealth);
-	//UE_LOG(LogTemp, Log, TEXT("Health Changed: %f"), Health);
 
 	bIsDead = Health <= 0.0f;
 
@@ -70,8 +69,6 @@ void USHealthComponent::Heal(float HealAmout) {
 	if (HealAmout <= 0.0f || Health <= 0.0f) return;
 
 	Health = FMath::Clamp(Health + HealAmout, 0.0f, DefaultHealth);
-	
-	UE_LOG(LogTemp, Warning, TEXT("Health Changed: %f (+%s)"), Health, *FString::SanitizeFloat(HealAmout));
 
 	OnHealthChanged.Broadcast(this, Health, -HealAmout, nullptr, nullptr, nullptr);
 }
@@ -85,7 +82,7 @@ bool USHealthComponent::IsFriendly(AActor* ActorA, AActor* ActorB) {
 	USHealthComponent* HealthCompB = Cast<USHealthComponent>(ActorB->GetComponentByClass(USHealthComponent::StaticClass()));
 
 	if (HealthCompA == nullptr || HealthCompB == nullptr) {
-		//Assume firednly
+		//Assume friendly
 		return true;
 	}
 
