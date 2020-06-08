@@ -9,6 +9,7 @@
 #include "CoopGame/CoopGame.h"
 #include "CoopGame/Public/Components/SHealthComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 // Sets default values
 ASCharacter::ASCharacter()
@@ -32,6 +33,7 @@ ASCharacter::ASCharacter()
 	ZoomedFOV = 65.f;
 	ZoomInterpSpeed = 20;
 	WeaponAttachSocket = "WeaponSocket";
+	DefaultWalkSpeed =400.f;
 }
 
 // Called when the game starts or when spawned
@@ -42,7 +44,7 @@ void ASCharacter::BeginPlay()
 	DefaultFOV = PlayerCamera->FieldOfView;
 	HealthComponent->OnHealthChanged.AddDynamic(this, &ASCharacter::OnHealthChanged);
 
-	if (Role == ROLE_Authority) {
+	if (GetLocalRole() == ROLE_Authority) {
 		//Spawn default weapon
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -82,23 +84,11 @@ void ASCharacter::StopFire() {
 	}
 }
 
-void ASCharacter::StartZoom() {
+void ASCharacter::ServerStartADS_Implementation() {
 	if (GetLocalRole() < ROLE_Authority) {
 		ServerStartADS();
 	}
-
 	bWantsToZoom = true;
-}
-
-void ASCharacter::StopZoom() {
-	if (GetLocalRole() < ROLE_Authority) {
-		ServerStopADS();
-	}
-	bWantsToZoom = false;
-}
-
-void ASCharacter::ServerStartADS_Implementation() {
-	StartZoom();
 }
 
 bool ASCharacter::ServerStartADS_Validate() {
@@ -106,7 +96,10 @@ bool ASCharacter::ServerStartADS_Validate() {
 }
 
 void ASCharacter::ServerStopADS_Implementation() {
-	StopZoom();
+		if (GetLocalRole() < ROLE_Authority) {
+		ServerStopADS();
+	}
+	bWantsToZoom = false;
 }
 
 bool ASCharacter::ServerStopADS_Validate() {
@@ -123,6 +116,30 @@ void ASCharacter::OnHealthChanged(USHealthComponent* HealthComp, float Health, f
 
 		SetLifeSpan(10.0f);
 	}
+}
+
+void ASCharacter::ServerStartSprint_Implementation() {
+	if (GetLocalRole() < ROLE_Authority) {
+		ServerStartSprint();
+	}
+	IsSprint = true;
+	GetCharacterMovement()->MaxWalkSpeed = DefaultWalkSpeed * 1.4f;
+}
+
+bool ASCharacter::ServerStartSprint_Validate() {
+	return true;
+}
+
+void ASCharacter::ServerStopSprint_Implementation() {
+	if (GetLocalRole() < ROLE_Authority) {
+		ServerStopSprint();
+	}
+	IsSprint = false;
+	GetCharacterMovement()->MaxWalkSpeed = DefaultWalkSpeed;
+}
+
+bool ASCharacter::ServerStopSprint_Validate() {
+	return true;
 }
 
 // Called every frame
@@ -158,11 +175,14 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 
-	PlayerInputComponent->BindAction("ADS", IE_Pressed, this, &ASCharacter::StartZoom);
-	PlayerInputComponent->BindAction("ADS", IE_Released, this, &ASCharacter::StopZoom);
+	PlayerInputComponent->BindAction("ADS", IE_Pressed, this, &ASCharacter::ServerStartADS);
+	PlayerInputComponent->BindAction("ADS", IE_Released, this, &ASCharacter::ServerStopADS);
 
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &ASCharacter::StartFire);
 	PlayerInputComponent->BindAction("Fire", IE_Released, this, &ASCharacter::StopFire);
+
+	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &ASCharacter::ServerStartSprint);
+	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &ASCharacter::ServerStopSprint);
 }
 
 FVector ASCharacter::GetPawnViewLocation() const {
@@ -179,4 +199,5 @@ void ASCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLi
 	DOREPLIFETIME(ASCharacter, bDied);
 	DOREPLIFETIME(ASCharacter, bWantsToZoom);
 	DOREPLIFETIME(ASCharacter, AimPitch);
+	DOREPLIFETIME(ASCharacter, IsSprint);
 }

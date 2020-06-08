@@ -57,7 +57,7 @@ void ASTrackerBot::BeginPlay()
 	
 	HealthComponent->OnHealthChanged.AddDynamic(this, &ASTrackerBot::HandleTakeDamage);
 	
-	if (Role == ROLE_Authority) {
+	if (GetLocalRole() == ROLE_Authority) {
 		//Find initial move-to
 		NextPathPoint = GetNextPathPoint();
 
@@ -128,7 +128,7 @@ void ASTrackerBot::SelfDestruct() {
 	MeshComp->SetVisibility(false, true);
 	MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-	if (Role == ROLE_Authority) {
+	if (GetLocalRole() == ROLE_Authority) {
 		TArray<AActor*> IgnoredActors;
 		IgnoredActors.Add(this);
 
@@ -193,7 +193,7 @@ void ASTrackerBot::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (Role == ROLE_Authority && !bExploded) {
+	if (GetLocalRole() == ROLE_Authority && !bExploded) {
 		float DistanceToTarget = (GetActorLocation() - NextPathPoint).Size();
 
 		if (DistanceToTarget <= RequiredDistanceToTarget) {

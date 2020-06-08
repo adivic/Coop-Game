@@ -55,10 +55,6 @@ protected:
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerStopADS();
 
-	void StartZoom();
-
-	void StopZoom();
-
 	UPROPERTY(Replicated)
 	ASWeapon* CurrentWeapon;
 
@@ -77,6 +73,17 @@ protected:
 
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = Player)
 	float AimPitch;
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerStartSprint();
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerStopSprint();
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Player)
+	bool IsSprint;
+
+	float DefaultWalkSpeed;
 
 public:	
 	// Called every frame
