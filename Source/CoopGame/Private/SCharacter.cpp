@@ -109,12 +109,18 @@ bool ASCharacter::ServerStopADS_Validate() {
 void ASCharacter::OnHealthChanged(USHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser) {
 	if (Health <= 0.0f && !bDied) {
 		bDied = true;
+
 		GetMovementComponent()->StopMovementImmediately();
 		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		CurrentWeapon->StopFire();
 		DetachFromControllerPendingDestroy();
 
-		SetLifeSpan(10.0f);
+		if (!IsRagdoll) {
+			OnRep_SetupRagdoll();
+		}
+		IsRagdoll = true;
+
+		SetLifeSpan(15.0f);
 	}
 }
 
@@ -142,6 +148,17 @@ bool ASCharacter::ServerStopSprint_Validate() {
 	return true;
 }
 
+void ASCharacter::OnRep_SetupRagdoll() {
+	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
+	SetActorEnableCollision(true);
+
+	//SetRagdoll
+	GetMesh()->SetAllBodiesSimulatePhysics(true);
+	GetMesh()->SetSimulatePhysics(true);
+	GetMesh()->WakeAllRigidBodies();
+	GetMesh()->bBlendPhysics = true;
+}
+
 // Called every frame
 void ASCharacter::Tick(float DeltaTime)
 {
@@ -156,6 +173,11 @@ void ASCharacter::Tick(float DeltaTime)
 	if (!IsLocallyControlled()) {
 		auto Pitch = RemoteViewPitch * 360.f / 255.f;
 		AimPitch = FMath::ClampAngle(Pitch, -90, 90);
+	} else {
+		FRotator DeltaRot = GetControlRotation() - GetActorRotation();
+		DeltaRot.Normalize();
+		AimPitch = FMath::FInterpTo(AimPitch, FMath::ClampAngle(DeltaRot.Pitch, -90, 90), DeltaTime, 20);
+		//AimPitch = FMath::ClampAngle(DeltaRot.Pitch, -90, 90);
 	}
 }
 
@@ -200,4 +222,5 @@ void ASCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLi
 	DOREPLIFETIME(ASCharacter, bWantsToZoom);
 	DOREPLIFETIME(ASCharacter, AimPitch);
 	DOREPLIFETIME(ASCharacter, IsSprint);
+	DOREPLIFETIME(ASCharacter, IsRagdoll);
 }

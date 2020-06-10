@@ -94,6 +94,9 @@ protected:
 	UFUNCTION()
 	void OnRep_HitScanTrace();
 
+	UPROPERTY(EditDefaultsOnly, Category = Weapon)
+	class USoundCue* FiringSound;
+
 public:
 
 	virtual void Fire();

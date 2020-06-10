@@ -12,6 +12,7 @@
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "TimerManager.h"
 #include "Net/UnrealNetwork.h"
+#include "Sound/SoundCue.h"
 
 static int32 DebugWeaponDrawing = 0;
 FAutoConsoleVariableRef CVARDebugWeaponDrawing(
@@ -135,6 +136,8 @@ void ASWeapon::PlayFireEffects(FVector TraceEnd) {
 		if (TracerComp) {
 			TracerComp->SetVectorParameter(TracerTargetName, TraceEnd);
 		}
+		if(FiringSound)
+			UGameplayStatics::PlaySoundAtLocation(this, FiringSound, MuzzleLocation);
 	}
 
 	APawn* MyOwner = Cast<APawn>(GetOwner());

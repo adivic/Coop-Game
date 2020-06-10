@@ -85,6 +85,12 @@ protected:
 
 	float DefaultWalkSpeed;
 
+	UPROPERTY(ReplicatedUsing=OnRep_SetupRagdoll, BlueprintReadOnly, Category = Player)
+	bool IsRagdoll;
+
+	UFUNCTION()
+	void OnRep_SetupRagdoll();
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
