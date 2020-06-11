@@ -109,7 +109,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Weapon)
 	class USoundCue* FiringSound;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon)
+	UPROPERTY(Replicated, EditDefaultsOnly, BlueprintReadOnly, Category = Weapon)
 	FAmmunition Ammunition;
 
 public:
@@ -120,6 +120,7 @@ public:
 
 	void StopFire();
 
+	UFUNCTION(Server, Reliable, WithValidation)
 	void Reload();
 
 	FAmmunition GetAmmunitionInfo() const;

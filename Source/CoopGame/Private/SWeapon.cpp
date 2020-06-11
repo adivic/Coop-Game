@@ -119,7 +119,6 @@ void ASWeapon::Fire() {
 	}	
 }
 
-
 void ASWeapon::StartFire() {
 
 	float FirstDelay = FMath::Max(LastFiredTime - TimeBetweenShots - GetWorld()->TimeSeconds, 0.0f);
@@ -131,6 +130,32 @@ void ASWeapon::StopFire() {
 	GetWorldTimerManager().ClearTimer(TimerHandler_FireRate);
 }
 
+void ASWeapon::Reload_Implementation() {
+	if (Ammunition.MaxAmmo > 0) {
+		if (Ammunition.CurrentAmmo > 0) {
+			int32 AmmoDifference = Ammunition.FullClip - Ammunition.CurrentAmmo;
+			if (Ammunition.MaxAmmo - AmmoDifference >= 0) {
+				Ammunition.CurrentAmmo = Ammunition.FullClip;
+				Ammunition.MaxAmmo -= AmmoDifference;
+			} else {
+				Ammunition.CurrentAmmo += Ammunition.MaxAmmo;
+				Ammunition.MaxAmmo = 0;
+			}
+		} else {
+			if (Ammunition.MaxAmmo - Ammunition.FullClip > 0) {
+				Ammunition.CurrentAmmo = Ammunition.FullClip;
+				Ammunition.MaxAmmo -= Ammunition.FullClip;
+			} else {
+				Ammunition.CurrentAmmo = Ammunition.MaxAmmo;
+				Ammunition.MaxAmmo = 0;
+			}
+		}
+	}
+}
+
+bool ASWeapon::Reload_Validate() {
+	return true;
+}
 
 void ASWeapon::PlayFireEffects(FVector TraceEnd) {
 
@@ -193,29 +218,6 @@ void ASWeapon::OnRep_HitScanTrace() {
 	PlayImpactEffects(HitScanTrace.SurfaceType, HitScanTrace.TraceTo);
 }
 
-void ASWeapon::Reload() {
-	if (Ammunition.MaxAmmo > 0) {
-		if (Ammunition.CurrentAmmo > 0) {
-			int32 AmmoDifference = Ammunition.FullClip - Ammunition.CurrentAmmo;
-			if (Ammunition.MaxAmmo - AmmoDifference >= 0) {
-				Ammunition.CurrentAmmo = Ammunition.FullClip;
-				Ammunition.MaxAmmo -= AmmoDifference;
-			} else {
-				Ammunition.CurrentAmmo += Ammunition.MaxAmmo;
-				Ammunition.MaxAmmo = 0;
-			}
-		} else {
-			if (Ammunition.MaxAmmo - Ammunition.FullClip > 0) {
-				Ammunition.CurrentAmmo = Ammunition.FullClip;
-				Ammunition.MaxAmmo -= Ammunition.FullClip;
-			} else {
-				Ammunition.CurrentAmmo = Ammunition.MaxAmmo;
-				Ammunition.MaxAmmo = 0;
-			}
-		}
-	}
-}
-
 FAmmunition ASWeapon::GetAmmunitionInfo() const {
 	return Ammunition;
 }
@@ -224,4 +226,5 @@ void ASWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetime
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(ASWeapon, HitScanTrace, COND_SkipOwner);
+	DOREPLIFETIME(ASWeapon, Ammunition);
 }
