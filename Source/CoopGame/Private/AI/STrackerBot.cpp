@@ -125,6 +125,7 @@ void ASTrackerBot::SelfDestruct() {
 	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ExplosionEffect, GetActorLocation());
 	UGameplayStatics::PlaySoundAtLocation(this, ExplodeSound, GetActorLocation());
 	
+	MeshComp->SetSimulatePhysics(false);
 	MeshComp->SetVisibility(false, true);
 	MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 

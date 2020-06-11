@@ -9,6 +9,7 @@
 #include "CoopGame/CoopGame.h"
 #include "CoopGame/Public/Components/SHealthComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Animation/AnimSequenceBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 // Sets default values
@@ -64,6 +65,7 @@ void ASCharacter::MoveRight(float value) {
 	AddMovementInput(GetActorRightVector() * value);
 }
 
+//TODO Toggle crouch
 void ASCharacter::BeginCrouch() {
 	Crouch();
 }
@@ -159,6 +161,27 @@ void ASCharacter::OnRep_SetupRagdoll() {
 	GetMesh()->bBlendPhysics = true;
 }
 
+void ASCharacter::Reload() {
+	StopFire();
+	auto Info = CurrentWeapon->GetAmmunitionInfo();
+	if (Info.MaxAmmo > 0 && Info.CurrentAmmo != Info.FullClip) {
+		ServerPlayMontage();
+	}
+	CurrentWeapon->Reload();
+}
+
+void ASCharacter::MulticastPlayMontage_Implementation() {
+	USkeletalMeshComponent* SkeletalMesh = Cast<USkeletalMeshComponent>(GetMesh());
+	if (SkeletalMesh) {
+		SkeletalMesh->GetAnimInstance()->Montage_Play(ReloadAnim);
+	}
+}
+
+void ASCharacter::ServerPlayMontage_Implementation() {
+	if(GetLocalRole() == ROLE_Authority)
+		MulticastPlayMontage();
+}
+
 // Called every frame
 void ASCharacter::Tick(float DeltaTime)
 {
@@ -205,6 +228,8 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &ASCharacter::ServerStartSprint);
 	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &ASCharacter::ServerStopSprint);
+
+	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &ASCharacter::Reload);
 }
 
 FVector ASCharacter::GetPawnViewLocation() const {

@@ -34,6 +34,11 @@ ASWeapon::ASWeapon()
 	FireRate = 600.f;
 	BulletSpread = 2.f;
 
+	Ammunition.CurrentAmmo = 30;
+	Ammunition.FullClip = 30;
+	Ammunition.MaxAmmo = 100;
+
+
 	SetReplicates(true);
 
 	NetUpdateFrequency = 66.f;
@@ -49,12 +54,15 @@ void ASWeapon::BeginPlay() {
 
 void ASWeapon::Fire() {
 
-	if (Role < ROLE_Authority) {
+	if (GetLocalRole() < ROLE_Authority) {
 		ServerFire();
 	}
 
 	AActor* MyOwner = GetOwner();
-	if (MyOwner) {
+	if (MyOwner && Ammunition.CurrentAmmo > 0) {
+
+		//Ammo
+		Ammunition.CurrentAmmo--;
 
 		FVector EyeLocation;
 		FRotator EyeRotator;
@@ -102,7 +110,7 @@ void ASWeapon::Fire() {
 		}
 		PlayFireEffects(TracerEndPoint);
 
-		if(Role == ROLE_Authority) {
+		if(GetLocalRole() == ROLE_Authority) {
 			HitScanTrace.TraceTo = TracerEndPoint;
 			HitScanTrace.SurfaceType = SurfaceType;
 		}
@@ -183,6 +191,33 @@ void ASWeapon::OnRep_HitScanTrace() {
 	// Play Cosmetic effects
 	PlayFireEffects(HitScanTrace.TraceTo);
 	PlayImpactEffects(HitScanTrace.SurfaceType, HitScanTrace.TraceTo);
+}
+
+void ASWeapon::Reload() {
+	if (Ammunition.MaxAmmo > 0) {
+		if (Ammunition.CurrentAmmo > 0) {
+			int32 AmmoDifference = Ammunition.FullClip - Ammunition.CurrentAmmo;
+			if (Ammunition.MaxAmmo - AmmoDifference >= 0) {
+				Ammunition.CurrentAmmo = Ammunition.FullClip;
+				Ammunition.MaxAmmo -= AmmoDifference;
+			} else {
+				Ammunition.CurrentAmmo += Ammunition.MaxAmmo;
+				Ammunition.MaxAmmo = 0;
+			}
+		} else {
+			if (Ammunition.MaxAmmo - Ammunition.FullClip > 0) {
+				Ammunition.CurrentAmmo = Ammunition.FullClip;
+				Ammunition.MaxAmmo -= Ammunition.FullClip;
+			} else {
+				Ammunition.CurrentAmmo = Ammunition.MaxAmmo;
+				Ammunition.MaxAmmo = 0;
+			}
+		}
+	}
+}
+
+FAmmunition ASWeapon::GetAmmunitionInfo() const {
+	return Ammunition;
 }
 
 void ASWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {

@@ -23,6 +23,18 @@ public:
 	FVector_NetQuantize TraceTo;
 };
 
+USTRUCT(BlueprintType)
+struct FAmmunition {
+	GENERATED_BODY()
+public:
+	UPROPERTY(BlueprintReadOnly)
+	int32 CurrentAmmo;
+	UPROPERTY(BlueprintReadOnly)
+	int32 FullClip;
+	UPROPERTY(BlueprintReadOnly)
+	int32 MaxAmmo;
+};
+
 UCLASS()
 class COOPGAME_API ASWeapon : public AActor
 {
@@ -97,6 +109,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Weapon)
 	class USoundCue* FiringSound;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon)
+	FAmmunition Ammunition;
+
 public:
 
 	virtual void Fire();
@@ -104,6 +119,10 @@ public:
 	void StartFire();
 
 	void StopFire();
+
+	void Reload();
+
+	FAmmunition GetAmmunitionInfo() const;
 
 };
 

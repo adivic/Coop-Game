@@ -16,8 +16,6 @@ USHealthComponent::USHealthComponent()
 	DefaultHealth = 100;
 	bIsDead = false; 
 	TeamNum = 255;
-
-	SetIsReplicated(true);
 }
 
 
@@ -25,6 +23,7 @@ USHealthComponent::USHealthComponent()
 void USHealthComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	SetIsReplicated(true);
 	if (GetOwnerRole() == ROLE_Authority) {
 		AActor* MyOwner = GetOwner();
 		if (MyOwner) {

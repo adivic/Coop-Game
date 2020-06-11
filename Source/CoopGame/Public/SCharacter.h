@@ -55,7 +55,7 @@ protected:
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerStopADS();
 
-	UPROPERTY(Replicated)
+	UPROPERTY(Replicated, BlueprintReadOnly)
 	ASWeapon* CurrentWeapon;
 
 	UPROPERTY(EditDefaultsOnly, Category = Player)
@@ -90,6 +90,19 @@ protected:
 
 	UFUNCTION()
 	void OnRep_SetupRagdoll();
+
+	UFUNCTION()
+	void Reload();
+
+	UPROPERTY(EditDefaultsOnly, Category = Player)
+	class UAnimMontage* ReloadAnim;
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastPlayMontage();
+
+	UFUNCTION(Server, Reliable)
+	void ServerPlayMontage();
+
 
 public:	
 	// Called every frame
