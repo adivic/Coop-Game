@@ -30,8 +30,6 @@ protected:
 
 	void BeginCrouch();
 
-	void EndCrouch();
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components)
 	UCameraComponent* PlayerCamera;
 
@@ -81,12 +79,12 @@ protected:
 	void ServerStopSprint();
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Player)
-	bool IsSprint;
+	bool bIsSprint;
 
 	float DefaultWalkSpeed;
 
 	UPROPERTY(ReplicatedUsing=OnRep_SetupRagdoll, BlueprintReadOnly, Category = Player)
-	bool IsRagdoll;
+	bool bIsRagdoll;
 
 	UFUNCTION()
 	void OnRep_SetupRagdoll();
@@ -102,6 +100,15 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void ServerPlayMontage();
+
+	UFUNCTION(Server, Reliable)
+	void Pickup();
+
+	UPROPERTY(EditDefaultsOnly, Category = Sound)
+	class USoundCue* NegativeSound;
+
+	UPROPERTY(EditDefaultsOnly, Category = Sound)
+	class USoundCue* PickupSound;
 
 
 public:	
@@ -121,4 +128,9 @@ public:
 
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = Player)
 	bool bWantsToZoom = false;
+
+	class ASWeapon* GetWeapon() const;
+
+	UPROPERTY()
+	bool bFPressed;
 };

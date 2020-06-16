@@ -38,6 +38,7 @@ ASWeapon::ASWeapon()
 	Ammunition.FullClip = 30;
 	Ammunition.MaxAmmo = 100;
 
+	DefaultMaxAmmo = Ammunition.MaxAmmo;
 
 	SetReplicates(true);
 
@@ -220,6 +221,22 @@ void ASWeapon::OnRep_HitScanTrace() {
 
 FAmmunition ASWeapon::GetAmmunitionInfo() const {
 	return Ammunition;
+}
+
+void ASWeapon::RefilAmmo(bool bIsMaxAmmo) {
+	if (Ammunition.MaxAmmo != DefaultMaxAmmo) {
+		if (bIsMaxAmmo) {
+			Ammunition.MaxAmmo = DefaultMaxAmmo;
+			Ammunition.CurrentAmmo = Ammunition.FullClip;
+		} else {
+			Ammunition.CurrentAmmo = Ammunition.FullClip;
+			if (Ammunition.MaxAmmo + (2 * Ammunition.FullClip) <= DefaultMaxAmmo) {
+				Ammunition.MaxAmmo += 2 * Ammunition.FullClip;
+			} else {
+				Ammunition.MaxAmmo = DefaultMaxAmmo;
+			}
+		}
+	} 
 }
 
 void ASWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {

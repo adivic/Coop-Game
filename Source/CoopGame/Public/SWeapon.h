@@ -112,6 +112,8 @@ protected:
 	UPROPERTY(Replicated, EditDefaultsOnly, BlueprintReadOnly, Category = Weapon)
 	FAmmunition Ammunition;
 
+	int32 DefaultMaxAmmo;
+
 public:
 
 	virtual void Fire();
@@ -125,5 +127,8 @@ public:
 
 	FAmmunition GetAmmunitionInfo() const;
 
+	void RefilAmmo(bool bIsMaxAmmo = false);
+
+	FORCEINLINE bool IsFull() const { return Ammunition.MaxAmmo == DefaultMaxAmmo; }
 };
 

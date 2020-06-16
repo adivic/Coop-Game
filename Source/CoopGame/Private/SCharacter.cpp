@@ -10,6 +10,10 @@
 #include "CoopGame/Public/Components/SHealthComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Animation/AnimSequenceBase.h"
+#include "DrawDebugHelpers.h"
+#include "SCollectable.h"
+#include "Sound/SoundCue.h"
+#include "Kismet/GameplayStatics.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 // Sets default values
@@ -34,7 +38,7 @@ ASCharacter::ASCharacter()
 	ZoomedFOV = 65.f;
 	ZoomInterpSpeed = 20;
 	WeaponAttachSocket = "WeaponSocket";
-	DefaultWalkSpeed =400.f;
+	DefaultWalkSpeed = 400.f;
 }
 
 // Called when the game starts or when spawned
@@ -62,16 +66,12 @@ void ASCharacter::MoveForward(float value) {
 }
 
 void ASCharacter::MoveRight(float value) {
-	AddMovementInput(GetActorRightVector() * value);
+	if(!bIsSprint) AddMovementInput(GetActorRightVector() * value);
 }
 
 //TODO Toggle crouch
 void ASCharacter::BeginCrouch() {
-	Crouch();
-}
-
-void ASCharacter::EndCrouch() {
-	UnCrouch();
+	bIsCrouched ? UnCrouch() : Crouch();
 }
 
 void ASCharacter::StartFire() {
@@ -84,6 +84,10 @@ void ASCharacter::StopFire() {
 	if (CurrentWeapon) {
 		CurrentWeapon->StopFire();
 	}
+}
+
+ASWeapon* ASCharacter::GetWeapon() const {
+	return CurrentWeapon;
 }
 
 void ASCharacter::ServerStartADS_Implementation() {
@@ -117,10 +121,10 @@ void ASCharacter::OnHealthChanged(USHealthComponent* HealthComp, float Health, f
 		CurrentWeapon->StopFire();
 		DetachFromControllerPendingDestroy();
 
-		if (!IsRagdoll) {
+		if (!bIsRagdoll) {
 			OnRep_SetupRagdoll();
 		}
-		IsRagdoll = true;
+		bIsRagdoll = true;
 
 		SetLifeSpan(15.0f);
 	}
@@ -130,7 +134,7 @@ void ASCharacter::ServerStartSprint_Implementation() {
 	if (GetLocalRole() < ROLE_Authority) {
 		ServerStartSprint();
 	}
-	IsSprint = true;
+	bIsSprint = true;
 	GetCharacterMovement()->MaxWalkSpeed = DefaultWalkSpeed * 1.4f;
 }
 
@@ -142,7 +146,7 @@ void ASCharacter::ServerStopSprint_Implementation() {
 	if (GetLocalRole() < ROLE_Authority) {
 		ServerStopSprint();
 	}
-	IsSprint = false;
+	bIsSprint = false;
 	GetCharacterMovement()->MaxWalkSpeed = DefaultWalkSpeed;
 }
 
@@ -182,6 +186,58 @@ void ASCharacter::ServerPlayMontage_Implementation() {
 		MulticastPlayMontage();
 }
 
+void ASCharacter::Pickup_Implementation() {
+	bFPressed = !bFPressed;
+	if (GetLocalRole() < ROLE_Authority) Pickup();
+	
+	if (bFPressed) {
+		FVector StartLocation;
+		FRotator EyeRotator;
+		GetActorEyesViewPoint(StartLocation, EyeRotator);
+		FVector EndLocation = StartLocation + (EyeRotator.Vector() * 350.f);
+
+		FCollisionQueryParams Params;
+
+		FHitResult Hit;
+
+		GetWorld()->LineTraceSingleByChannel(Hit, StartLocation, EndLocation, ECC_Visibility, Params);
+
+		ASCollectable* PickupActor = Cast<ASCollectable>(Hit.Actor);
+		if (PickupActor && PickupActor->GetIsOverlap()) {
+			switch (PickupActor->GetType()) {
+			case ECollectableType::AMMO:
+				if (!CurrentWeapon->IsFull()) {
+					CurrentWeapon->RefilAmmo();
+					PickupActor->Destroy();
+					UGameplayStatics::PlaySoundAtLocation(this, PickupSound, GetActorLocation());
+				} else {
+					UGameplayStatics::PlaySoundAtLocation(this, NegativeSound, GetActorLocation());
+				}
+				break;
+			case ECollectableType::MAX_AMMO:
+				if (!CurrentWeapon->IsFull()) {
+					CurrentWeapon->RefilAmmo(true);
+					PickupActor->Destroy();
+					UGameplayStatics::PlaySoundAtLocation(this, PickupSound, GetActorLocation());
+				} else {
+					UGameplayStatics::PlaySoundAtLocation(this, NegativeSound, GetActorLocation());
+				}
+				break;
+
+			case ECollectableType::HELATH:
+				if (HealthComponent->GetHealth() != 100) {
+					HealthComponent->Heal(20.f);
+					PickupActor->Destroy();
+					UGameplayStatics::PlaySoundAtLocation(this, PickupSound, GetActorLocation());
+				} else {
+					UGameplayStatics::PlaySoundAtLocation(this, NegativeSound, GetActorLocation());
+				}
+				break;
+			}
+		}
+	}
+}
+
 // Called every frame
 void ASCharacter::Tick(float DeltaTime)
 {
@@ -216,8 +272,6 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAxis("Turn", this, &ASCharacter::AddControllerYawInput);
 
 	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &ASCharacter::BeginCrouch);
-	PlayerInputComponent->BindAction("Crouch", IE_Released, this, &ASCharacter::EndCrouch);
-
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 
 	PlayerInputComponent->BindAction("ADS", IE_Pressed, this, &ASCharacter::ServerStartADS);
@@ -230,6 +284,9 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &ASCharacter::ServerStopSprint);
 
 	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &ASCharacter::Reload);
+
+	PlayerInputComponent->BindAction("Pickup", IE_Pressed, this, &ASCharacter::Pickup);
+	PlayerInputComponent->BindAction("Pickup", IE_Released, this, &ASCharacter::Pickup);
 }
 
 FVector ASCharacter::GetPawnViewLocation() const {
@@ -246,6 +303,6 @@ void ASCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLi
 	DOREPLIFETIME(ASCharacter, bDied);
 	DOREPLIFETIME(ASCharacter, bWantsToZoom);
 	DOREPLIFETIME(ASCharacter, AimPitch);
-	DOREPLIFETIME(ASCharacter, IsSprint);
-	DOREPLIFETIME(ASCharacter, IsRagdoll);
+	DOREPLIFETIME(ASCharacter, bIsSprint);
+	DOREPLIFETIME(ASCharacter, bIsRagdoll);
 }
