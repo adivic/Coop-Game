@@ -14,7 +14,11 @@
 #include "SCollectable.h"
 #include "Sound/SoundCue.h"
 #include "Kismet/GameplayStatics.h"
+#include "CoopGame/Public/Components/SThrowableComponent.h"
+#include "Particles/ParticleSystemComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "SGrenadeActor.h"
+#include "Components/SplineComponent.h"
 
 // Sets default values
 ASCharacter::ASCharacter()
@@ -31,6 +35,7 @@ ASCharacter::ASCharacter()
 	GetCapsuleComponent()->SetCollisionResponseToChannel(COLLISION_WEAPON, ECR_Ignore);
 
 	HealthComponent = CreateDefaultSubobject<USHealthComponent>(TEXT("HealthComponent"));
+	ThrowableComponent = CreateDefaultSubobject<USThrowableComponent>(TEXT("ThrowableComponent"));
 
 	PlayerCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("PlayerCamera"));
 	PlayerCamera->SetupAttachment(SpringArmComp);
@@ -238,6 +243,28 @@ void ASCharacter::Pickup_Implementation() {
 	}
 }
 
+void ASCharacter::ThrowGrenade_Implementation() {
+	bIsThrowing = false;
+	if (GetLocalRole() == ROLE_Authority) {
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Instigator = this;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		ThrowableComponent->CalculatePath();
+		OnRep_ThrowGrenade();
+		GetWorld()->SpawnActor<ASGrenadeActor>(GrenadeActor, GetActorLocation() + GetActorForwardVector() * 50, GetControlRotation(), SpawnParams);
+	}
+}
+
+void ASCharacter::DrawGrenadePath() {
+	bIsThrowing = true;
+}
+
+void ASCharacter::OnRep_ThrowGrenade() {
+	if (!bIsThrowing) {
+		ThrowableComponent->GetSuggestedToss();
+	}
+}
+
 // Called every frame
 void ASCharacter::Tick(float DeltaTime)
 {
@@ -249,6 +276,9 @@ void ASCharacter::Tick(float DeltaTime)
 
 	PlayerCamera->SetFieldOfView(NewFov);
 
+	if(bIsThrowing)
+		ThrowableComponent->CalculatePath();
+
 	if (!IsLocallyControlled()) {
 		auto Pitch = RemoteViewPitch * 360.f / 255.f;
 		AimPitch = FMath::ClampAngle(Pitch, -90, 90);
@@ -256,7 +286,6 @@ void ASCharacter::Tick(float DeltaTime)
 		FRotator DeltaRot = GetControlRotation() - GetActorRotation();
 		DeltaRot.Normalize();
 		AimPitch = FMath::FInterpTo(AimPitch, FMath::ClampAngle(DeltaRot.Pitch, -90, 90), DeltaTime, 20);
-		//AimPitch = FMath::ClampAngle(DeltaRot.Pitch, -90, 90);
 	}
 }
 
@@ -287,6 +316,9 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 	PlayerInputComponent->BindAction("Pickup", IE_Pressed, this, &ASCharacter::Pickup);
 	PlayerInputComponent->BindAction("Pickup", IE_Released, this, &ASCharacter::Pickup);
+
+	PlayerInputComponent->BindAction("Throw", IE_Pressed, this, &ASCharacter::DrawGrenadePath);
+	PlayerInputComponent->BindAction("Throw", IE_Released, this, &ASCharacter::ThrowGrenade);
 }
 
 FVector ASCharacter::GetPawnViewLocation() const {
@@ -305,4 +337,5 @@ void ASCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLi
 	DOREPLIFETIME(ASCharacter, AimPitch);
 	DOREPLIFETIME(ASCharacter, bIsSprint);
 	DOREPLIFETIME(ASCharacter, bIsRagdoll);
+	DOREPLIFETIME(ASCharacter, bIsThrowing);
 }

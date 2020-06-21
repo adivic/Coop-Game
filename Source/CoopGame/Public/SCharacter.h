@@ -39,6 +39,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components)
 	USHealthComponent* HealthComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components)
+	class USThrowableComponent* ThrowableComponent;
+
 	UPROPERTY(EditDefaultsOnly, Category = Player, meta= (ClampMin = 0.1, ClampMax = 100))
 	float ZoomInterpSpeed;
 
@@ -110,7 +113,22 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
 	class USoundCue* PickupSound;
 
+	UFUNCTION(Server, Reliable)
+	void ThrowGrenade();
 
+	UFUNCTION()
+	void DrawGrenadePath();
+
+	UPROPERTY(ReplicatedUsing=OnRep_ThrowGrenade)
+	bool bIsThrowing = false;
+
+	UFUNCTION()
+	void OnRep_ThrowGrenade();
+
+ 	UPROPERTY(EditDefaultsOnly, Category = Grenade)
+ 	TSubclassOf<class ASGrenadeActor> GrenadeActor;
+
+	
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
