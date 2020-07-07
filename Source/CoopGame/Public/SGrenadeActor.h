@@ -36,4 +36,13 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void Explode();
+
+	UPROPERTY(ReplicatedUsing = OnRep_Exploded)
+	bool bExploded;
+
+	UFUNCTION()
+	void Exploding();
+
+	UFUNCTION()
+	void OnRep_Exploded();
 };

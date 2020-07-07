@@ -6,6 +6,9 @@
 #include "DrawDebugHelpers.h"
 #include "Particles/ParticleSystem.h"
 #include "Sound/SoundCue.h"
+#include "SCharacter.h"
+#include "Net/UnrealNetwork.h"
+#include "Components/SphereComponent.h"
 
 // Sets default values
 ASGrenadeActor::ASGrenadeActor()
@@ -20,8 +23,8 @@ ASGrenadeActor::ASGrenadeActor()
 
 	SetReplicates(true);
 	SetReplicateMovement(true);
-
 	DamageRadius = 300.f;
+	bExploded = false;
 }
 
 // Called when the game starts or when spawned
@@ -29,16 +32,50 @@ void ASGrenadeActor::BeginPlay()
 {
 	Super::BeginPlay();
 	FTimerHandle ExplodeTimer;
-	GetWorldTimerManager().SetTimer(ExplodeTimer, this, &ASGrenadeActor::Explode, 3.f, false);
+	GetWorldTimerManager().SetTimer(ExplodeTimer, this, &ASGrenadeActor::Exploding, 3.f, false);
 }
 
+//Server
 void ASGrenadeActor::Explode_Implementation() {
+	OnRep_Exploded();
+	//Apply Damage
+	FHitResult Hit;
+	FCollisionShape ShapeShpere;
+	ShapeShpere.Sphere;
+	ShapeShpere.SetSphere(DamageRadius);
+	FCollisionQueryParams Params;
+
+	FCollisionObjectQueryParams QueryParams;
+	QueryParams.AddObjectTypesToQuery(ECC_Pawn);
+	GetWorld()->SweepSingleByObjectType(Hit, GetActorLocation(), GetActorLocation() * 300, FQuat::Identity, QueryParams, ShapeShpere, Params);
+
+	if (Hit.bBlockingHit && Hit.Actor != nullptr) {
+		ASCharacter* DamagedChar = Cast<ASCharacter>(Hit.GetActor());
+		UGameplayStatics::ApplyRadialDamage(Hit.GetActor(), 100, GetActorLocation(), 300, DamageType, TArray<AActor*>(), GetInstigator(), GetInstigatorController(), true);
+		//UGameplayStatics::ApplyDamage(Hit.GetActor(), 110.f, GetInstigatorController(), GetInstigator(), DamageType);
+
+		UE_LOG(LogTemp, Warning, TEXT("HIT is True %s"), *Hit.GetActor()->GetName());
+	}
+	
+	DrawDebugSphere(GetWorld(), GetActorLocation(), DamageRadius, 20, FColor::Red, false, 3.f);
+	SetLifeSpan(1.0f);
+}
+
+void ASGrenadeActor::Exploding() {
+	bExploded = true;
+	Explode();
+	OnRep_Exploded();
+}
+
+void ASGrenadeActor::OnRep_Exploded() {
 	FTransform SpawnTransform = FTransform(GetActorRotation(), GetActorLocation(), FVector(5));
 	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ExplosionEffect, SpawnTransform);
-	TArray<AActor*> IgnoreActors;
-	UGameplayStatics::ApplyRadialDamage(GetWorld(), 100.f, GetActorLocation(), DamageRadius, DamageType, IgnoreActors, GetInstigator());
-
+	MeshComp->SetHiddenInGame(true);
 	UGameplayStatics::PlaySoundAtLocation(GetWorld(), ExplosionSound, GetActorLocation());
+}
 
-	Destroy();
+void ASGrenadeActor::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const {
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ASGrenadeActor, bExploded);
 }

@@ -36,11 +36,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Grenade)
 	float ThrowVelocity = 1500.f;
 
-	//UFUNCTION(Server, Reliable)
-	void DrawProjectile();
+	UPROPERTY(EditDefaultsOnly, Category = Grenade)
+	TSubclassOf<AActor> Tracer;
+
+	UFUNCTION(Client, Reliable)
+	void DrawTracePath();
 
 public:	
-
+	
 	void CalculatePath();
 
 	UFUNCTION(Server, Reliable)

@@ -98,8 +98,11 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Player)
 	class UAnimMontage* ReloadAnim;
 
+	UPROPERTY(EditDefaultsOnly, Category = Player)
+	UAnimMontage* VaultAnim;
+
 	UFUNCTION(NetMulticast, Reliable)
-	void MulticastPlayMontage();
+	void MulticastPlayMontage(UAnimMontage* MontageToPlay);
 
 	UFUNCTION(Server, Reliable)
 	void ServerPlayMontage();
@@ -128,7 +131,15 @@ protected:
  	UPROPERTY(EditDefaultsOnly, Category = Grenade)
  	TSubclassOf<class ASGrenadeActor> GrenadeActor;
 
-	
+	virtual void Jump() override;
+
+	UFUNCTION(Server, Reliable)
+	void Vault();
+
+	bool CanVault() const;
+
+	FVector DeterminateLandingPoint() const;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

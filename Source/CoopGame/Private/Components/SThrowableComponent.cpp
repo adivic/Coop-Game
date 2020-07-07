@@ -11,12 +11,17 @@
 // Sets default values for this component's properties
 USThrowableComponent::USThrowableComponent()
 {
-
+	
 }
 
-void USThrowableComponent::DrawProjectile() {
-	for (auto path : ThrowParams.PredictResult.PathData) {
-		DrawDebugCircle(GetWorld(), path.Location, 5, 10, FColor::Red, false, 0);
+void USThrowableComponent::DrawTracePath_Implementation() {
+	ASCharacter* MyPawn = Cast<ASCharacter>(GetOwner());
+	if (MyPawn->IsLocallyControlled()) {
+		for (auto Path : ThrowParams.PredictResult.PathData) {
+			if (Tracer) {
+				GetWorld()->SpawnActor<AActor>(Tracer, Path.Location, FRotator::ZeroRotator)->SetLifeSpan(0.05f);
+			}
+		}
 	}
 }
 
@@ -38,16 +43,13 @@ void USThrowableComponent::CalculatePath() {
 		PathParams.ActorsToIgnore = IgnoreActors;
 
 		UGameplayStatics::PredictProjectilePath(GetWorld(), PathParams, ThrowParams.PredictResult);
-	
+
 		//Calculate Distance
 		ThrowParams.Distance = FVector::Distance(MyPawn->GetActorLocation(), ThrowParams.PredictResult.LastTraceDestination.Location);
-
-		if (MyPawn->IsLocallyControlled()) {
-			for (auto path : ThrowParams.PredictResult.PathData) {
-				DrawDebugCircle(GetWorld(), path.Location, 5, 10, FColor::Red, false, 0);
-			}
-		}
-	}
+		
+		if (MyPawn->IsLocallyControlled())
+			DrawTracePath();
+	} 
 }
 
 void USThrowableComponent::GetSuggestedToss_Implementation() {

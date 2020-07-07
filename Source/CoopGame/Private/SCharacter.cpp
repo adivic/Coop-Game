@@ -179,16 +179,16 @@ void ASCharacter::Reload() {
 	CurrentWeapon->Reload();
 }
 
-void ASCharacter::MulticastPlayMontage_Implementation() {
+void ASCharacter::MulticastPlayMontage_Implementation(UAnimMontage* MontageToPlay) {
 	USkeletalMeshComponent* SkeletalMesh = Cast<USkeletalMeshComponent>(GetMesh());
 	if (SkeletalMesh) {
-		SkeletalMesh->GetAnimInstance()->Montage_Play(ReloadAnim);
+		SkeletalMesh->GetAnimInstance()->Montage_Play(MontageToPlay);
 	}
 }
 
 void ASCharacter::ServerPlayMontage_Implementation() {
 	if(GetLocalRole() == ROLE_Authority)
-		MulticastPlayMontage();
+		MulticastPlayMontage(ReloadAnim);
 }
 
 void ASCharacter::Pickup_Implementation() {
@@ -265,6 +265,53 @@ void ASCharacter::OnRep_ThrowGrenade() {
 	}
 }
 
+void ASCharacter::Jump() {
+	if (!CanVault()) {
+		Super::Jump();
+	} else {
+		Vault();
+	}
+}
+
+void ASCharacter::Vault_Implementation() {
+	MulticastPlayMontage(VaultAnim);
+	FVector NewLocation = FMath::VInterpTo(GetActorLocation(), DeterminateLandingPoint(), GetWorld()->GetDeltaSeconds(), 20.f);
+	NewLocation += FVector(0, 0, GetDefaultHalfHeight());
+	SetActorLocation(NewLocation);
+}
+
+bool ASCharacter::CanVault() const {
+	FHitResult Hit;
+	FHitResult HitFalse;
+	FVector EndLocation = GetActorLocation() + (GetActorForwardVector() * 100);
+
+	FCollisionQueryParams Params; 
+	Params.AddIgnoredActor(this);
+
+	GetWorld()->LineTraceSingleByChannel(Hit, GetActorLocation(), EndLocation, ECC_Visibility, Params);
+	GetWorld()->LineTraceSingleByChannel(HitFalse, GetActorLocation()+ FVector(0,0,50), EndLocation + FVector(0, 0, 50), ECC_Visibility, Params);
+	
+	if (Hit.bBlockingHit && !HitFalse.bBlockingHit) {
+		if (Hit.GetComponent() != nullptr) {
+			return true;
+		}
+	}
+	return false;
+}
+
+FVector ASCharacter::DeterminateLandingPoint() const {
+	FHitResult Hit;
+	FVector LandLocation = FVector(0, 0, 0);
+	FVector EndLocation = GetActorLocation() + FVector(0,0,-100) + (GetActorForwardVector() * 300);
+	GetWorld()->LineTraceSingleByChannel(Hit, GetActorLocation() + FVector(0, 0, 100), EndLocation, ECC_Visibility);
+	//DrawDebugLine(GetWorld(), GetActorLocation() + FVector(0, 0, 100), EndLocation, FColor::Red, false, 2.f);
+	if (Hit.bBlockingHit) {
+		LandLocation = Hit.Location;
+		//DrawDebugSphere(GetWorld(), LandLocation, 20, 10, FColor::Blue, false, 3.f);
+	}
+	return LandLocation;
+}
+
 // Called every frame
 void ASCharacter::Tick(float DeltaTime)
 {
@@ -301,7 +348,7 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAxis("Turn", this, &ASCharacter::AddControllerYawInput);
 
 	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &ASCharacter::BeginCrouch);
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ASCharacter::Jump);
 
 	PlayerInputComponent->BindAction("ADS", IE_Pressed, this, &ASCharacter::ServerStartADS);
 	PlayerInputComponent->BindAction("ADS", IE_Released, this, &ASCharacter::ServerStopADS);
