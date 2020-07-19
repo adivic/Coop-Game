@@ -109,6 +109,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Weapon)
 	class USoundCue* FiringSound;
 
+	UPROPERTY(EditDefaultsOnly, Category = Sound)
+	USoundCue* HeadshotSound;
+
 	UPROPERTY(Replicated, EditDefaultsOnly, BlueprintReadOnly, Category = Weapon)
 	FAmmunition Ammunition;
 

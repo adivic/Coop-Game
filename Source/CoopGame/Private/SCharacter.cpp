@@ -18,6 +18,8 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "SGrenadeActor.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "TimerManager.h"
 #include "Components/SplineComponent.h"
 
 // Sets default values
@@ -39,7 +41,7 @@ ASCharacter::ASCharacter()
 
 	PlayerCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("PlayerCamera"));
 	PlayerCamera->SetupAttachment(SpringArmComp);
-
+	
 	ZoomedFOV = 65.f;
 	ZoomInterpSpeed = 20;
 	WeaponAttachSocket = "WeaponSocket";
@@ -80,7 +82,7 @@ void ASCharacter::BeginCrouch() {
 }
 
 void ASCharacter::StartFire() {
-	if (CurrentWeapon) {
+	if (CurrentWeapon && !bIsSprint) {
 		CurrentWeapon->StartFire();
 	}
 }
@@ -136,9 +138,6 @@ void ASCharacter::OnHealthChanged(USHealthComponent* HealthComp, float Health, f
 }
 
 void ASCharacter::ServerStartSprint_Implementation() {
-	if (GetLocalRole() < ROLE_Authority) {
-		ServerStartSprint();
-	}
 	bIsSprint = true;
 	GetCharacterMovement()->MaxWalkSpeed = DefaultWalkSpeed * 1.4f;
 }
@@ -148,9 +147,6 @@ bool ASCharacter::ServerStartSprint_Validate() {
 }
 
 void ASCharacter::ServerStopSprint_Implementation() {
-	if (GetLocalRole() < ROLE_Authority) {
-		ServerStopSprint();
-	}
 	bIsSprint = false;
 	GetCharacterMovement()->MaxWalkSpeed = DefaultWalkSpeed;
 }
@@ -174,7 +170,7 @@ void ASCharacter::Reload() {
 	StopFire();
 	auto Info = CurrentWeapon->GetAmmunitionInfo();
 	if (Info.MaxAmmo > 0 && Info.CurrentAmmo != Info.FullClip) {
-		ServerPlayMontage();
+		ServerPlayReloadMontage();
 	}
 	CurrentWeapon->Reload();
 }
@@ -186,7 +182,7 @@ void ASCharacter::MulticastPlayMontage_Implementation(UAnimMontage* MontageToPla
 	}
 }
 
-void ASCharacter::ServerPlayMontage_Implementation() {
+void ASCharacter::ServerPlayReloadMontage_Implementation() {
 	if(GetLocalRole() == ROLE_Authority)
 		MulticastPlayMontage(ReloadAnim);
 }
@@ -266,18 +262,21 @@ void ASCharacter::OnRep_ThrowGrenade() {
 }
 
 void ASCharacter::Jump() {
-	if (!CanVault()) {
-		Super::Jump();
-	} else {
+	if (CanVault()) {
 		Vault();
+	} else {
+		Super::Jump();
 	}
 }
 
 void ASCharacter::Vault_Implementation() {
 	MulticastPlayMontage(VaultAnim);
-	FVector NewLocation = FMath::VInterpTo(GetActorLocation(), DeterminateLandingPoint(), GetWorld()->GetDeltaSeconds(), 20.f);
+	FVector EndLocation = GetActorLocation() + (GetActorUpVector() * 50) + (GetActorForwardVector() * 300);
+	FVector NewLocation = FMath::VInterpTo(GetActorLocation(), EndLocation, GetWorld()->GetDeltaSeconds(), 20.f);
 	NewLocation += FVector(0, 0, GetDefaultHalfHeight());
-	SetActorLocation(NewLocation);
+	FLatentActionInfo LatInfo;
+	LatInfo.CallbackTarget = this;
+	UKismetSystemLibrary::MoveComponentTo(GetCapsuleComponent(), NewLocation, FRotator::ZeroRotator, false, true, .1f, false, EMoveComponentAction::Type::Move, LatInfo);
 }
 
 bool ASCharacter::CanVault() const {
@@ -299,18 +298,41 @@ bool ASCharacter::CanVault() const {
 	return false;
 }
 
-FVector ASCharacter::DeterminateLandingPoint() const {
+/*bool ASCharacter::CanClimb() {
+	
+	FName HeadSocket = "head";
 	FHitResult Hit;
-	FVector LandLocation = FVector(0, 0, 0);
-	FVector EndLocation = GetActorLocation() + FVector(0,0,-100) + (GetActorForwardVector() * 300);
-	GetWorld()->LineTraceSingleByChannel(Hit, GetActorLocation() + FVector(0, 0, 100), EndLocation, ECC_Visibility);
-	//DrawDebugLine(GetWorld(), GetActorLocation() + FVector(0, 0, 100), EndLocation, FColor::Red, false, 2.f);
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+
+	FVector StartLocation = GetMesh()->GetSocketLocation(HeadSocket);
+	FVector EndLocation = GetMesh()->GetSocketLocation(HeadSocket) + (GetActorForwardVector() * 100);
+	GetWorld()->LineTraceSingleByChannel(Hit, StartLocation, EndLocation, ECC_Visibility, Params);
+
 	if (Hit.bBlockingHit) {
-		LandLocation = Hit.Location;
-		//DrawDebugSphere(GetWorld(), LandLocation, 20, 10, FColor::Blue, false, 3.f);
+		if (Hit.GetComponent() != nullptr) {
+			return true;
+		}
 	}
-	return LandLocation;
+	return false;
 }
+
+void ASCharacter::Climb_Implementation() {
+	MulticastPlayMontage(ClimbAnim);
+	FHitResult Hit;
+	GetWorld()->LineTraceSingleByChannel(Hit, GetActorLocation() + FVector(0, 0, 500), GetActorLocation() + (GetActorForwardVector() * 130), ECC_Visibility);
+	FVector Loc = Hit.Location;
+
+	FTimerHandle Handle;
+	FTimerDelegate RespawnDelegate = FTimerDelegate::CreateUObject(this, &ASCharacter::Climbed, Loc);
+	GetWorldTimerManager().SetTimer(Handle, RespawnDelegate, 2.4f, false);
+}
+
+void ASCharacter::Climbed_Implementation(FVector ClimbLocation) {
+	FLatentActionInfo LatInfo;
+	LatInfo.CallbackTarget = this;
+	UKismetSystemLibrary::MoveComponentTo(GetCapsuleComponent(), ClimbLocation, FRotator::ZeroRotator, false, true, .1f, false, EMoveComponentAction::Type::Move, LatInfo);
+}*/
 
 // Called every frame
 void ASCharacter::Tick(float DeltaTime)

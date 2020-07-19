@@ -101,11 +101,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Player)
 	UAnimMontage* VaultAnim;
 
+	UPROPERTY(EditDefaultsOnly, Category = Player)
+	UAnimMontage* ClimbAnim;
+
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastPlayMontage(UAnimMontage* MontageToPlay);
 
 	UFUNCTION(Server, Reliable)
-	void ServerPlayMontage();
+	void ServerPlayReloadMontage();
 
 	UFUNCTION(Server, Reliable)
 	void Pickup();
@@ -138,8 +141,14 @@ protected:
 
 	bool CanVault() const;
 
-	FVector DeterminateLandingPoint() const;
+	/*bool CanClimb();
 
+	UFUNCTION(Server, Reliable)
+	void Climb();
+
+	UFUNCTION(Server, Reliable)
+	void Climbed(FVector ClimbLocation);
+	*/
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

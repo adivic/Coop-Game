@@ -98,6 +98,7 @@ void ASWeapon::Fire() {
 			float ActualDamage = BaseDamage;
 			if (SurfaceType == SURFACE_FLESHVULNERABLE) {
 				ActualDamage *= 4.f;
+				UGameplayStatics::PlaySoundAtLocation(GetWorld(), HeadshotSound, GetActorLocation());
 			}
 
 			UGameplayStatics::ApplyPointDamage(HitActor, ActualDamage, ShotDirection, Hit, MyOwner->GetInstigatorController(), MyOwner, DamageType);
