@@ -42,6 +42,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components)
 	class USThrowableComponent* ThrowableComponent;
 
+	UPROPERTY(EditDefaultsOnly, Category = Player)
+	TSubclassOf<AActor> BodyPart;
+
 	UPROPERTY(EditDefaultsOnly, Category = Player, meta= (ClampMin = 0.1, ClampMax = 100))
 	float ZoomInterpSpeed;
 

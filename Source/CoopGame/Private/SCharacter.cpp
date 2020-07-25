@@ -20,7 +20,7 @@
 #include "SGrenadeActor.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "TimerManager.h"
-#include "Components/SplineComponent.h"
+#include "Components/SkinnedMeshComponent.h"
 
 // Sets default values
 ASCharacter::ASCharacter()
@@ -127,6 +127,15 @@ void ASCharacter::OnHealthChanged(USHealthComponent* HealthComp, float Health, f
 		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		CurrentWeapon->StopFire();
 		DetachFromControllerPendingDestroy();
+		auto Messh = Cast<USkinnedMeshComponent>(GetMesh());
+		if (Messh) {
+			Messh->HideBoneByName("head", EPhysBodyOp::PBO_None);
+		}
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		FTransform SpawnTransform = FTransform(GetMesh()->GetSocketRotation("head"), GetMesh()->GetSocketLocation("head"), FVector(0.05f));
+		auto headMesh = GetWorld()->SpawnActor<AActor>(BodyPart, SpawnTransform, Params);
+		headMesh->SetLifeSpan(15.f);
 
 		if (!bIsRagdoll) {
 			OnRep_SetupRagdoll();
