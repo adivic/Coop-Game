@@ -128,9 +128,8 @@ void ASCharacter::OnHealthChanged(USHealthComponent* HealthComp, float Health, f
 		CurrentWeapon->StopFire();
 		DetachFromControllerPendingDestroy();
 		auto Messh = Cast<USkinnedMeshComponent>(GetMesh());
-		if (Messh) {
+		if (Messh) 
 			Messh->HideBoneByName("head", EPhysBodyOp::PBO_None);
-		}
 		FActorSpawnParameters Params;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		FTransform SpawnTransform = FTransform(GetMesh()->GetSocketRotation("head"), GetMesh()->GetSocketLocation("head"), FVector(0.05f));
