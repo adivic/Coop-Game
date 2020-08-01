@@ -205,12 +205,13 @@ void ASCharacter::Pickup_Implementation() {
 		GetActorEyesViewPoint(StartLocation, EyeRotator);
 		FVector EndLocation = StartLocation + (EyeRotator.Vector() * 350.f);
 
-		FCollisionQueryParams Params;
-
 		FHitResult Hit;
-
-		GetWorld()->LineTraceSingleByChannel(Hit, StartLocation, EndLocation, ECC_Visibility, Params);
-
+		FCollisionShape Shape;
+		Shape.SetCapsule(40, 80);
+		FCollisionQueryParams Params;
+		Params.AddIgnoredActor(this);
+		GetWorld()->SweepSingleByChannel(Hit, GetActorLocation(), GetActorLocation() + (GetActorForwardVector() * 50), FQuat::Identity, ECC_Visibility, Shape, Params);
+		
 		ASCollectable* PickupActor = Cast<ASCollectable>(Hit.Actor);
 		if (PickupActor && PickupActor->GetIsOverlap()) {
 			switch (PickupActor->GetType()) {
@@ -244,28 +245,6 @@ void ASCharacter::Pickup_Implementation() {
 				break;
 			}
 		}
-	}
-}
-
-void ASCharacter::ThrowGrenade_Implementation() {
-	bIsThrowing = false;
-	if (GetLocalRole() == ROLE_Authority) {
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Instigator = this;
-		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		ThrowableComponent->CalculatePath();
-		OnRep_ThrowGrenade();
-		GetWorld()->SpawnActor<ASGrenadeActor>(GrenadeActor, GetActorLocation() + GetActorForwardVector() * 50, GetControlRotation(), SpawnParams);
-	}
-}
-
-void ASCharacter::DrawGrenadePath() {
-	bIsThrowing = true;
-}
-
-void ASCharacter::OnRep_ThrowGrenade() {
-	if (!bIsThrowing) {
-		ThrowableComponent->GetSuggestedToss();
 	}
 }
 
@@ -353,9 +332,6 @@ void ASCharacter::Tick(float DeltaTime)
 
 	PlayerCamera->SetFieldOfView(NewFov);
 
-	if(bIsThrowing)
-		ThrowableComponent->CalculatePath();
-
 	if (!IsLocallyControlled()) {
 		auto Pitch = RemoteViewPitch * 360.f / 255.f;
 		AimPitch = FMath::ClampAngle(Pitch, -90, 90);
@@ -393,9 +369,6 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 	PlayerInputComponent->BindAction("Pickup", IE_Pressed, this, &ASCharacter::Pickup);
 	PlayerInputComponent->BindAction("Pickup", IE_Released, this, &ASCharacter::Pickup);
-
-	PlayerInputComponent->BindAction("Throw", IE_Pressed, this, &ASCharacter::DrawGrenadePath);
-	PlayerInputComponent->BindAction("Throw", IE_Released, this, &ASCharacter::ThrowGrenade);
 }
 
 FVector ASCharacter::GetPawnViewLocation() const {
@@ -414,5 +387,4 @@ void ASCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLi
 	DOREPLIFETIME(ASCharacter, AimPitch);
 	DOREPLIFETIME(ASCharacter, bIsSprint);
 	DOREPLIFETIME(ASCharacter, bIsRagdoll);
-	DOREPLIFETIME(ASCharacter, bIsThrowing);
 }

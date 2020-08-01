@@ -28,6 +28,7 @@ protected:
 	// Number of bots to spawn in current wave
 	int32 NumOfBotsToSpawn;
 
+	UPROPERTY(BlueprintReadOnly, Category = GameMode)
 	int32 WaveCount = 0;
 
 	UPROPERTY(EditDefaultsOnly, Category = GameMode)
@@ -69,5 +70,4 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = GameMode)
 	FOnActorKilled OnActorKilled;
-
 };

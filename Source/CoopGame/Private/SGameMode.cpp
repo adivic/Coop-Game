@@ -102,10 +102,15 @@ void ASGameMode::CheckAnyPlayerAlive() {
 
 void ASGameMode::GameOver() {
 	EndWave();
-	//TODO Finish up the match present 'gameover' to players
-
 	SetWaveState(EWaveState::GameOver);
-	UE_LOG(LogTemp, Warning, TEXT("Game Over players Died"));
+	for (FConstPlayerControllerIterator it = GetWorld()->GetPlayerControllerIterator(); it; ++it) {
+		APlayerController* PC = it->Get();
+		if (PC) {
+			FTimerDelegate Del = FTimerDelegate::CreateLambda([PC]() {PC->ConsoleCommand("quit"); });
+			FTimerHandle Handle;
+			GetWorldTimerManager().SetTimer(Handle, Del, 3.f, false);
+		}
+	}
 }
 
 void ASGameMode::SetWaveState(EWaveState NewState) {

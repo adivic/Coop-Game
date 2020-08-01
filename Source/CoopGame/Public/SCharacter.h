@@ -122,21 +122,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
 	class USoundCue* PickupSound;
 
-	UFUNCTION(Server, Reliable)
-	void ThrowGrenade();
-
-	UFUNCTION()
-	void DrawGrenadePath();
-
-	UPROPERTY(ReplicatedUsing=OnRep_ThrowGrenade)
-	bool bIsThrowing = false;
-
-	UFUNCTION()
-	void OnRep_ThrowGrenade();
-
- 	UPROPERTY(EditDefaultsOnly, Category = Grenade)
- 	TSubclassOf<class ASGrenadeActor> GrenadeActor;
-
 	virtual void Jump() override;
 
 	UFUNCTION(Server, Reliable)
@@ -152,6 +137,7 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void Climbed(FVector ClimbLocation);
 	*/
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
