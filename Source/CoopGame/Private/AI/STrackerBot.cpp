@@ -232,7 +232,7 @@ void ASTrackerBot::NotifyActorBeginOverlap(AActor* OtherActor) {
 		ASCharacter* PlayerPawn = Cast<ASCharacter>(OtherActor);
 		if (PlayerPawn && !USHealthComponent::IsFriendly(OtherActor, this)) {
 
-			if (Role == ROLE_Authority) {
+			if (GetLocalRole() == ROLE_Authority) {
 				GetWorldTimerManager().SetTimer(TimerHandler_SelfDamage, this, &ASTrackerBot::DamageSelf, SelfDamageInterval, true, 0.0f);
 			}
 

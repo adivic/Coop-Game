@@ -28,7 +28,7 @@ ASPickupActor::ASPickupActor()
 void ASPickupActor::BeginPlay()
 {
 	Super::BeginPlay();
-	if (Role == ROLE_Authority) {
+	if (GetLocalRole() == ROLE_Authority) {
 		Respawn();
 	}
 }
@@ -48,7 +48,7 @@ void ASPickupActor::Respawn() {
 void ASPickupActor::NotifyActorBeginOverlap(AActor* OtherActor) {
 	Super::NotifyActorBeginOverlap(OtherActor);
 
-	if (Role == ROLE_Authority && PowerupInstance) {
+	if (GetLocalRole() == ROLE_Authority && PowerupInstance) {
 		PowerupInstance->ActivatePowerup(OtherActor);
 		PowerupInstance = nullptr;
 

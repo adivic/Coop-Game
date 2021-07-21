@@ -17,8 +17,7 @@ ASGrenadeActor::ASGrenadeActor()
 	PrimaryActorTick.bCanEverTick = true;
 
 	MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
-	MeshComp->SetSimulatePhysics(true);
-	MeshComp->SetMassOverrideInKg(NAME_None, 1.f);
+	
 	RootComponent = MeshComp;
 
 	SetReplicates(true);
@@ -33,6 +32,8 @@ void ASGrenadeActor::BeginPlay()
 	Super::BeginPlay();
 	FTimerHandle ExplodeTimer;
 	GetWorldTimerManager().SetTimer(ExplodeTimer, this, &ASGrenadeActor::Exploding, 3.f, false);
+	MeshComp->SetSimulatePhysics(true);
+	MeshComp->SetMassOverrideInKg(NAME_None, 1.f);
 }
 
 //Server
