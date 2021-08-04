@@ -121,6 +121,9 @@ public:
 
 	virtual void Fire();
 
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = Weapon)
+	void OnFire();
+
 	void StartFire();
 
 	void StopFire();

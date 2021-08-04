@@ -56,7 +56,8 @@ void ASCharacter::BeginPlay()
 	DefaultFOV = PlayerCamera->FieldOfView;
 	HealthComponent->OnHealthChanged.AddDynamic(this, &ASCharacter::OnHealthChanged);
 
-	if (GetLocalRole() == ROLE_Authority) {
+	auto MapName = GetWorld()->GetMapName();
+	if (GetLocalRole() == ROLE_Authority && !MapName.Contains("Lobby")) {
 		//Spawn default weapon
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -191,8 +192,10 @@ void ASCharacter::MulticastPlayMontage_Implementation(UAnimMontage* MontageToPla
 }
 
 void ASCharacter::ServerPlayReloadMontage_Implementation() {
-	if(GetLocalRole() == ROLE_Authority)
+	if (GetLocalRole() == ROLE_Authority) 
 		MulticastPlayMontage(ReloadAnim);
+	else
+		ServerPlayReloadMontage();
 }
 
 void ASCharacter::Pickup_Implementation() {
@@ -387,4 +390,6 @@ void ASCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLi
 	DOREPLIFETIME(ASCharacter, AimPitch);
 	DOREPLIFETIME(ASCharacter, bIsSprint);
 	DOREPLIFETIME(ASCharacter, bIsRagdoll);
+	DOREPLIFETIME(ASCharacter, ReloadAnim);
+	DOREPLIFETIME(ASCharacter, VaultAnim);
 }

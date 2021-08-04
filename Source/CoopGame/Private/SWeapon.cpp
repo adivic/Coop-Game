@@ -50,8 +50,12 @@ void ASWeapon::BeginPlay() {
 	Super::BeginPlay();
 
 	TimeBetweenShots = 60 / FireRate;
+	OnFire();
 }
 
+void ASWeapon::OnFire_Implementation() {
+	// Override in Blueprint
+}
 
 void ASWeapon::Fire() {
 
@@ -64,6 +68,7 @@ void ASWeapon::Fire() {
 
 		//Ammo
 		Ammunition.CurrentAmmo--;
+		OnFire();
 
 		FVector EyeLocation;
 		FRotator EyeRotator;
@@ -152,6 +157,7 @@ void ASWeapon::Reload_Implementation() {
 				Ammunition.MaxAmmo = 0;
 			}
 		}
+		OnFire();
 	}
 }
 

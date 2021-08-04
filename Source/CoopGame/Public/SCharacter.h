@@ -98,10 +98,10 @@ protected:
 	UFUNCTION()
 	void Reload();
 
-	UPROPERTY(EditDefaultsOnly, Category = Player)
+	UPROPERTY(Replicated, EditDefaultsOnly, Category = Player)
 	class UAnimMontage* ReloadAnim;
 
-	UPROPERTY(EditDefaultsOnly, Category = Player)
+	UPROPERTY(Replicated, EditDefaultsOnly, Category = Player)
 	UAnimMontage* VaultAnim;
 
 	UPROPERTY(EditDefaultsOnly, Category = Player)
@@ -156,6 +156,7 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = Player)
 	bool bWantsToZoom = false;
 
+	UFUNCTION(BlueprintCallable, Category = Player)
 	class ASWeapon* GetWeapon() const;
 
 	UPROPERTY()
