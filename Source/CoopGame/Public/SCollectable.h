@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "SCollectable.generated.h"
 
+class ASCharacter;
+
 UENUM()
 enum class ECollectableType : uint8 {
 	AMMO, HELATH, MAX_AMMO,
@@ -50,4 +52,10 @@ public:
 
 	UFUNCTION(BlueprintSetter, BlueprintCallable, Category = Collectable)
 	void SetType(ECollectableType NewType);
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = Collectable)
+	void OnOverlapBegin(ASCharacter* PlayerCharacter);
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = Collectable)
+	void OnOverlapEnd(ASCharacter* PlayerCharacter);
 };

@@ -46,6 +46,7 @@ ASCharacter::ASCharacter()
 	ZoomInterpSpeed = 20;
 	WeaponAttachSocket = "WeaponSocket";
 	DefaultWalkSpeed = 400.f;
+	bLobbyPose = false;
 }
 
 // Called when the game starts or when spawned
@@ -56,8 +57,7 @@ void ASCharacter::BeginPlay()
 	DefaultFOV = PlayerCamera->FieldOfView;
 	HealthComponent->OnHealthChanged.AddDynamic(this, &ASCharacter::OnHealthChanged);
 
-	auto MapName = GetWorld()->GetMapName();
-	if (GetLocalRole() == ROLE_Authority && !MapName.Contains("Lobby")) {
+	if (GetLocalRole() == ROLE_Authority && !bLobbyPose) {
 		//Spawn default weapon
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -123,6 +123,8 @@ bool ASCharacter::ServerStopADS_Validate() {
 void ASCharacter::OnHealthChanged(USHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser) {
 	if (Health <= 0.0f && !bDied) {
 		bDied = true;
+		ASWeapon* EnemyWeapon = Cast<ASCharacter>(DamageCauser)->GetWeapon();
+		OnDeath(DamageCauser, EnemyWeapon);
 
 		GetMovementComponent()->StopMovementImmediately();
 		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -206,15 +208,18 @@ void ASCharacter::Pickup_Implementation() {
 		FVector StartLocation;
 		FRotator EyeRotator;
 		GetActorEyesViewPoint(StartLocation, EyeRotator);
-		FVector EndLocation = StartLocation + (EyeRotator.Vector() * 350.f);
+		FVector EndLocation = StartLocation + (EyeRotator.Vector() * 1000.f);
 
 		FHitResult Hit;
 		FCollisionShape Shape;
 		Shape.SetCapsule(40, 80);
 		FCollisionQueryParams Params;
 		Params.AddIgnoredActor(this);
-		GetWorld()->SweepSingleByChannel(Hit, GetActorLocation(), GetActorLocation() + (GetActorForwardVector() * 50), FQuat::Identity, ECC_Visibility, Shape, Params);
 		
+		FVector ShotDirection = EyeRotator.Vector();
+		FVector TraceEnd = StartLocation + (ShotDirection * 1000.f);
+
+		GetWorld()->LineTraceSingleByChannel(Hit, StartLocation, EndLocation, ECC_Visibility, Params);
 		ASCollectable* PickupActor = Cast<ASCollectable>(Hit.Actor);
 		if (PickupActor && PickupActor->GetIsOverlap()) {
 			switch (PickupActor->GetType()) {
@@ -392,4 +397,5 @@ void ASCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLi
 	DOREPLIFETIME(ASCharacter, bIsRagdoll);
 	DOREPLIFETIME(ASCharacter, ReloadAnim);
 	DOREPLIFETIME(ASCharacter, VaultAnim);
+	DOREPLIFETIME(ASCharacter, PlayerInfo);
 }

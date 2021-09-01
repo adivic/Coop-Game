@@ -11,6 +11,29 @@ class USpringArmComponent;
 class ASWeapon;
 class USHealthComponent;
 
+USTRUCT(BlueprintType)
+struct FCPlayerInfo {
+	GENERATED_BODY()
+
+public:
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FText PlayerName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UTexture2D* PlayerImage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<ACharacter> PlayerCharacter;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UTexture2D* PlayerCharacterImage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FText PlayerStatus;
+};
+
+
 UCLASS()
 class COOPGAME_API ASCharacter : public ACharacter
 {
@@ -52,6 +75,9 @@ protected:
 	float ZoomedFOV;
 
 	float DefaultFOV;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Player)
+	bool bLobbyPose;
 
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerStartADS();
@@ -129,14 +155,8 @@ protected:
 
 	bool CanVault() const;
 
-	/*bool CanClimb();
-
-	UFUNCTION(Server, Reliable)
-	void Climb();
-
-	UFUNCTION(Server, Reliable)
-	void Climbed(FVector ClimbLocation);
-	*/
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, Category = Health)
+	void OnDeath(AActor* DamageCauser, ASWeapon* EnemyWeapon);
 
 public:	
 	// Called every frame
@@ -161,4 +181,7 @@ public:
 
 	UPROPERTY()
 	bool bFPressed;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = Player)
+	FCPlayerInfo PlayerInfo;
 };

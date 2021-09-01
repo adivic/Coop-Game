@@ -40,6 +40,7 @@ void ASCollectable::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AAc
 	ASCharacter* OverlappedCharacter = Cast<ASCharacter>(OtherActor);
 	if (OverlappedCharacter) {
 		bIsOverlap = true;
+		OnOverlapBegin(OverlappedCharacter);
 	}
 }
 
@@ -47,8 +48,14 @@ void ASCollectable::OnEndOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 	ASCharacter* OverlappedCharacter = Cast<ASCharacter>(OtherActor);
 	if (OverlappedCharacter) {
 		bIsOverlap = false;
+		OnOverlapEnd(OverlappedCharacter);
 	}
 }
+
+void ASCollectable::OnOverlapBegin_Implementation(ASCharacter* PlayerCharacter) {} //Override in BLueprints
+
+void ASCollectable::OnOverlapEnd_Implementation(ASCharacter* PlayerCharacter) {}// Override in Blueprints
+
 
 void ASCollectable::SetType(ECollectableType NewType) {
 	Type = NewType;

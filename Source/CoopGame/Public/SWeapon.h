@@ -4,10 +4,29 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "SCharacter.h"
 #include "SWeapon.generated.h"
 
 class USkeletalMeshComponent;
 class UParticleSystem;
+
+USTRUCT(BlueprintType)
+struct FKillInfo {
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(BlueprintReadOnly)
+	FCPlayerInfo KillerPlayerInfo;
+
+	UPROPERTY(BlueprintReadOnly)
+	FCPlayerInfo DeadPlayerInfo;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bIsHeadshot;
+
+	UPROPERTY(BlueprintReadOnly)
+	ASWeapon* KillerWeapon;
+};
 
 //Contains informations of single line trace
 USTRUCT()
@@ -54,6 +73,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components)
 	USkeletalMeshComponent* MeshComp;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon)
+	UTexture2D* WeaponIcon;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon)
 	TSubclassOf<class UDamageType> DamageType;
@@ -136,5 +158,7 @@ public:
 	void RefilAmmo(bool bIsMaxAmmo = false);
 
 	FORCEINLINE bool IsFull() const { return Ammunition.MaxAmmo == DefaultMaxAmmo; }
+
+	FORCEINLINE UTexture2D* GetIcon() const { return WeaponIcon; }
 };
 
