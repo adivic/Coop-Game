@@ -215,9 +215,6 @@ void ASCharacter::Pickup_Implementation() {
 		Shape.SetCapsule(40, 80);
 		FCollisionQueryParams Params;
 		Params.AddIgnoredActor(this);
-		
-		FVector ShotDirection = EyeRotator.Vector();
-		FVector TraceEnd = StartLocation + (ShotDirection * 1000.f);
 
 		GetWorld()->LineTraceSingleByChannel(Hit, StartLocation, EndLocation, ECC_Visibility, Params);
 		ASCollectable* PickupActor = Cast<ASCollectable>(Hit.Actor);

@@ -104,19 +104,11 @@ void ASWeapon::Fire() {
 			if (SurfaceType == SURFACE_FLESHVULNERABLE) {
 				ActualDamage *= 4.f;
 				UGameplayStatics::PlaySoundAtLocation(GetWorld(), HeadshotSound, GetActorLocation());
-				
-				QueryParams.AddIgnoredActor(HitActor);
-
-				//Do one more line trace to see if there is someone behind
-				if (GetWorld()->LineTraceSingleByChannel(Hit, EyeLocation, TraceEnd, COLLISION_WEAPON, QueryParams)) {
-					
-				}
 			}
 
 			UGameplayStatics::ApplyPointDamage(HitActor, ActualDamage, ShotDirection, Hit, MyOwner->GetInstigatorController(), MyOwner, DamageType);
 
 			PlayImpactEffects(SurfaceType, Hit.ImpactPoint);
-
 		}
 
 		if (DebugWeaponDrawing > 0) {
